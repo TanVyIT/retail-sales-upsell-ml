@@ -1,0 +1,21 @@
+# Môi trường ảo Python
+.venv/
+venv/
+ENV/
+
+# Byte-compiled / Python cache
+__pycache__/
+*.py[cod]
+
+# File dữ liệu nặng và mô hình lưu trữ
+data/raw/*
+data/processed/*
+models/*.pkl
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!models/.gitkeep
+
+# IDE / Editor Settings
+.vscode/
+.idea/
+*.swp
