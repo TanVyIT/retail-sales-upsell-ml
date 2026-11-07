@@ -10,7 +10,7 @@ __pycache__/
 # File dữ liệu nặng và mô hình lưu trữ
 data/raw/*
 data/processed/*
-models/*.pkl
+#models/*.pkl
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !models/.gitkeep
