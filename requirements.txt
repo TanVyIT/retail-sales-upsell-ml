@@ -7,3 +7,5 @@ seaborn
 pillow
 scikit-learn
 joblib
+fastapi
+uvicorn

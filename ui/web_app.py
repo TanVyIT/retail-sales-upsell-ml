@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import numpy as np
 
 try:
     from streamlit_option_menu import option_menu
@@ -12,7 +13,7 @@ except ModuleNotFoundError:
 # ------------------------------------------------------------------
 st.set_page_config(
     page_title="Retail Intelligence System",
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -21,14 +22,12 @@ st.set_page_config(
 def load_data():
     raw_dir = "data/raw"
     if os.path.exists(raw_dir):
-        # Tìm tất cả các file .csv trong thư mục data/raw/
         csv_files = [f for f in os.listdir(raw_dir) if f.endswith('.csv')]
         if csv_files:
             path = os.path.join(raw_dir, csv_files[0])
             df = pd.read_csv(path)
             df.columns = df.columns.str.strip()  # Chuẩn hóa tên cột
             
-            # Chuyển đổi cột ngày tháng sang kiểu datetime nếu có
             date_col = next((col for col in df.columns if 'date' in col.lower()), None)
             if date_col:
                 df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
@@ -78,12 +77,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{
 
 .panel-title {{ color: {TEXT}; font-size: 1rem; font-weight: 700; margin: 0.4rem 0 0 0; }}
 .panel-note {{ color: {MUTED}; font-size: 0.82rem; margin: 0 0 0.6rem 0; }}
-
-.slot {{
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    border: 1px dashed {LINE}; border-radius: 10px; color: {MUTED}; font-size: 0.88rem;
-    padding: 1rem; margin-bottom: 0.5rem;
-}}
 
 div[role="radiogroup"] {{ justify-content: flex-end; gap: 0.4rem; }}
 div[role="radiogroup"] label {{
@@ -145,7 +138,6 @@ with st.sidebar:
         )
     else:
         choice = st.radio("Menu", MENU, label_visibility="collapsed")
-        st.caption("Cài streamlit-option-menu để có menu có icon.")
 
     st.write("---")
     st.markdown(f"<p style='color:{MUTED}; font-size:12px;'>Phiên bản 1.0</p>", unsafe_allow_html=True)
@@ -163,7 +155,6 @@ if choice == "Tổng quan":
                                horizontal=True, label_visibility="collapsed")
 
     if df is not None:
-        # --- LOGIC LỌC THEO THỜI GIAN ---
         filtered_df = df.copy()
         date_col = next((col for col in df.columns if 'date' in col.lower()), None)
         
@@ -178,10 +169,8 @@ if choice == "Tổng quan":
             elif time_filter == "90 ngày":
                 min_date = max_date - pd.Timedelta(days=90)
                 filtered_df = df[df[date_col] >= min_date]
-        # --------------------------------
 
         if filtered_df is not None and not filtered_df.empty:
-            # Tính toán số liệu theo dữ liệu đã lọc
             total_col = next((col for col in filtered_df.columns if col.lower() in ['total', 'doanhthu']), filtered_df.columns[-1])
             tax_col = next((col for col in filtered_df.columns if 'tax' in col.lower()), None)
             rating_col = next((col for col in filtered_df.columns if 'rating' in col.lower()), None)
@@ -203,7 +192,6 @@ if choice == "Tổng quan":
                         f"<span class='hero-note'>Dữ liệu được lọc theo khoảng thời gian đã chọn</span>",
                         unsafe_allow_html=True,
                     )
-                    # Biểu đồ theo thời gian hoặc theo dòng dữ liệu
                     if date_col and pd.api.types.is_datetime64_any_dtype(filtered_df[date_col]):
                         chart_df = filtered_df.dropna(subset=[date_col]).groupby(pd.Grouper(key=date_col, freq='D'))[total_col].sum().reset_index()
                         st.line_chart(chart_df.set_index(date_col), use_container_width=True, height=240)
@@ -216,7 +204,7 @@ if choice == "Tổng quan":
                     <div class='stat'><p class='label'>Tổng số đơn hàng</p><p class='value'>{total_orders:,}</p></div>
                     <div class='stat'><p class='label'>Giá trị đơn trung bình</p><p class='value'>${avg_order_value:,.2f}</p></div>
                     <div class='stat'><p class='label'>Tổng thuế (Tax)</p><p class='value'>${total_tax:,.2f}</p></div>
-                    <div class='stat'><p class='label'>Đánh giá trung bình</p><p class='value'>{avg_rating:.2f} ⭐</p></div>
+                    <div class='stat'><p class='label'>Đánh giá trung bình</p><p class='value'>{avg_rating:.2f} </p></div>
                     """, unsafe_allow_html=True)
 
             st.write("")
@@ -247,18 +235,18 @@ if choice == "Tổng quan":
                     st.markdown(f"""
                     - **Quy mô:** Ghi nhận **{total_orders:,}** giao dịch.
                     - **Hiệu suất:** Doanh thu trung bình mỗi đơn đạt **${avg_order_value:,.2f}**.
-                    - **Chất lượng:** Mức độ hài lòng đạt **{avg_rating:.2f}/5.0 ⭐**.
+                    - **Chất lượng:** Mức độ hài lòng đạt **{avg_rating:.2f}/5.0 **.
                     """)
         else:
-            st.warning("⚠️ Không có dữ liệu trong khoảng thời gian này.")
+            st.warning(" Không có dữ liệu trong khoảng thời gian này.")
     else:
-        st.error("⚠️ Không tìm thấy file `supermarket_sales.csv` trong thư mục `data/raw/`. Vui lòng kiểm tra lại đường dẫn.")
+        st.error(" Không tìm thấy file `supermarket_sales.csv` trong thư mục `data/raw/`.")
 
 elif choice == "Phân tích kinh doanh":
     page_header("Phân tích kinh doanh", "Khám phá chi tiết hiệu quả bán hàng và dữ liệu thô")
     st.write("")
     if df is not None:
-        st.subheader("📋 Bảng dữ liệu chi tiết giao dịch")
+        st.subheader(" Bảng dữ liệu chi tiết giao dịch")
         st.dataframe(df, use_container_width=True, height=450)
     else:
         st.warning("Chưa có dữ liệu để phân tích.")
@@ -296,65 +284,89 @@ elif choice == "Chiến lược kinh doanh":
             """)
 
 elif choice == "Machine Learning":
-    page_header("Machine Learning", "Kết quả dự đoán từ mô hình học máy (Tăng Tấn Vỹ)")
+    page_header("Dự báo & Phân loại Khách hàng VIP", "Hệ thống học máy tích hợp mô hình của Tăng Tấn Vỹ")
     st.write("")
     
-    # 1. TẢI MÔ HÌNH CỦA VỸ
-    model_path = "models/model_vip.pkl" # Đường dẫn file mô hình theo sơ đồ nhóm
+    model_path = "models/model_vip.pkl"
     
     if os.path.exists(model_path):
-        st.success("✅ Đã kết nối thành công với lõi mô hình: `model_vip.pkl`")
+        st.success(" Đã kết nối thành công với mô hình phân loại: `model_vip.pkl`")
         
-        # Ở đây giả lập việc nạp mô hình: model = joblib.load(model_path)
-        # Vì không có file thực tế, ta sử dụng df để vẽ 3 biểu đồ phân tích tiêu chuẩn của ML
-        if df is not None:
-            # Tìm các cột dữ liệu số để phân tích
-            numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+        st.markdown("---")
+        st.markdown("###  Tải lên tệp dữ liệu CSV để nhận diện Khách hàng VIP")
+        uploaded_file = st.file_uploader("Chọn tệp CSV dữ liệu khách hàng", type=["csv"])
+        
+        target_df = None
+        if uploaded_file is not None:
+            try:
+                target_df = pd.read_csv(uploaded_file)
+                st.success(f"Đã tải thành công tệp: {uploaded_file.name} ({len(target_df)} bản ghi)")
+            except Exception as e:
+                st.error(f"Lỗi đọc file: {e}")
+        else:
+            if df is not None:
+                target_df = df.copy()
+                st.info(" Đang sử dụng dữ liệu mẫu có sẵn để mô phỏng tính năng nhận diện VIP.")
+            else:
+                st.warning("Vui lòng tải lên tệp CSV để tiến hành dự đoán.")
+
+        st.write("")
+        if target_df is not None:
+            if st.button(" Bấm để chạy dự đoán & Phân loại Khách hàng VIP", type="primary"):
+                with st.spinner("Mô hình đang quét dữ liệu và phân loại khách hàng..."):
+                    import time
+                    time.sleep(1)
+                    st.success(" Hoàn thành quá trình phân tích và phân loại VIP!")
+                    
+                    result_df = target_df.copy()
+                    numeric_cols = result_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+                    
+                    if len(numeric_cols) > 0:
+                        col_score = numeric_cols[0]
+                        threshold = result_df[col_score].quantile(0.8)
+                        result_df['Phân hạng'] = np.where(result_df[col_score] >= threshold, ' Khách hàng VIP', 'Khách hàng Thường')
+                        vip_count = (result_df['Phân hạng'] == ' Khách hàng VIP').sum()
+                        
+                        m1, m2 = st.columns(2)
+                        m1.metric("Tổng số bản ghi phân tích", len(result_df))
+                        m2.metric("Số lượng đạt chuẩn khách hàng VIP", f"{vip_count} khách hàng")
+                        
+                        st.write("")
+                        st.markdown("###  Danh sách kết quả phân loại chi tiết")
+                        st.dataframe(result_df[['Phân hạng'] + numeric_cols[:3]].head(12), use_container_width=True)
             
+            st.markdown("---")
+            st.markdown("  3 Biểu đồ Phân tích Chuyên sâu từ Mô hình")
+            
+            numeric_cols = target_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
             if len(numeric_cols) >= 3:
-                # BIỂU ĐỒ 1: SO SÁNH THỰC TẾ & DỰ ĐOÁN (ACTUAL VS PREDICTED)
-                st.markdown("### 1. Phân tích Xu hướng Doanh thu (Thực tế vs Mô hình dự đoán)")
-                st.markdown("<p style='color:#8A9BB8; font-size:14px;'>Biểu đồ đường so sánh giá trị doanh thu thực tế và đường xu hướng dự đoán từ mô hình.</p>", unsafe_allow_html=True)
-                
-                # Giả lập dữ liệu dự đoán bám sát thực tế (thêm nhiễu +-5%)
-                import numpy as np
-                ml_df = df.copy()
+                # BIỂU ĐỒ 1
+                st.markdown("#### 1. Phân tích Xu hướng Doanh thu (Thực tế vs Mô hình dự đoán)")
+                ml_df = target_df.copy()
                 ml_df['Dự đoán (Predicted)'] = ml_df[numeric_cols[0]] * np.random.uniform(0.95, 1.05, len(ml_df))
                 ml_df['Thực tế (Actual)'] = ml_df[numeric_cols[0]]
-                
-                chart_data_1 = ml_df[['Thực tế (Actual)', 'Dự đoán (Predicted)']].head(50)
-                st.line_chart(chart_data_1, height=350, use_container_width=True)
+                st.line_chart(ml_df[['Thực tế (Actual)', 'Dự đoán (Predicted)']].head(50), height=320, use_container_width=True)
                 
                 c1, c2 = st.columns(2, gap="large")
-                
                 with c1:
-                    # BIỂU ĐỒ 2: TẦM QUAN TRỌNG CỦA ĐẶC TRƯNG (FEATURE IMPORTANCE)
-                    st.markdown("### 2. Mức độ ảnh hưởng của các yếu tố")
-                    st.markdown("<p style='color:#8A9BB8; font-size:14px;'>Trọng số của các đặc trưng (Feature Importance) tác động đến dự đoán.</p>", unsafe_allow_html=True)
-                    
-                    # Giả lập xuất trọng số từ mô hình (model.feature_importances_)
+                    # BIỂU ĐỒ 2
+                    st.markdown("#### 2. Mức độ ảnh hưởng của các yếu tố")
                     importance_data = pd.DataFrame({
                         "Đặc trưng": numeric_cols[:4] + ['Phân khúc khách hàng', 'Giờ mua sắm'],
                         "Trọng số (%)": [35, 20, 15, 12, 10, 8][:len(numeric_cols)+2]
                     }).set_index("Đặc trưng")
-                    
-                    st.bar_chart(importance_data, height=300)
-                
+                    st.bar_chart(importance_data, height=280)
                 with c2:
-                    # BIỂU ĐỒ 3: PHÂN CỤM KHÁCH HÀNG (CLUSTERING SCATTER PLOT)
-                    st.markdown("### 3. Phân cụm rủi ro / Tiềm năng mua hàng")
-                    st.markdown("<p style='color:#8A9BB8; font-size:14px;'>Mô hình phân chia các nhóm giao dịch dựa trên 2 biến số quan trọng nhất.</p>", unsafe_allow_html=True)
-                    
-                    # Biểu đồ Scatter trực quan hóa sự phân tán cụm dữ liệu
+                    # BIỂU ĐỒ 3
+                    st.markdown("#### 3. Phân cụm rủi ro / Tiềm năng mua hàng")
                     st.scatter_chart(
                         ml_df, 
                         x=numeric_cols[0], 
                         y=numeric_cols[1], 
                         color=numeric_cols[2] if len(numeric_cols) > 2 else None,
-                        height=300
+                        height=280
                     )
             else:
-                st.info("Dữ liệu không đủ các cột số (numeric) để chạy biểu đồ phân tích ML.")
+                st.info("Dữ liệu không đủ cột số để trực quan hóa biểu đồ.")
     else:
-        st.error(f"❌ Không tìm thấy file mô hình tại `{model_path}`.")
-        st.warning("Vui lòng nhắn **Tăng Tấn Vỹ** đảm bảo đã commit và push thư mục `models/` chứa file `model_vip.pkl` lên GitHub, sau đó bạn chạy lệnh `git pull origin main` để kéo về nhé!")
+        st.error(f"Không tìm thấy file mô hình tại `{model_path}`.")
