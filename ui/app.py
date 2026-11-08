@@ -62,7 +62,7 @@ div[data-testid="stMetricLabel"] {
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------
-# 3. Đọc dữ liệu tập trung (Có cache chống load lại chậm)
+# 3. Đọc dữ liệu tập trung (Cho các tab Tổng quan, Phân tích, Chiến lược)
 # ------------------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -82,7 +82,7 @@ def load_data():
 df = load_data()
 
 # ------------------------------------------------------------------
-# 4. Thanh điều hướng Sidebar (Sử dụng option_menu nguyên bản để siêu mượt)
+# 4. Thanh điều hướng Sidebar
 # ------------------------------------------------------------------
 with st.sidebar:
     st.markdown("<h2 style='color: #0f172a; font-size: 1.6rem; margin-bottom: 0;'>🛍️ Retail VIP</h2>", unsafe_allow_html=True)
@@ -188,7 +188,6 @@ elif choice == "Chiến lược":
     st.write("---")
 
     if df is not None:
-        # Tự động tìm cột phân khúc khách hàng (không phân biệt hoa thường, khoảng trắng hay dấu gạch dưới)
         cust_col = next((col for col in df.columns if 'customer' in col.lower() or 'type' in col.lower() or 'member' in col.lower()), None)
         total_col = next((col for col in df.columns if col.lower() in ['total', 'doanhthu', 'sales']), df.columns[-1])
 
@@ -200,13 +199,11 @@ elif choice == "Chiến lược":
                     cust_sales = df.groupby(cust_col)[total_col].sum()
                     st.bar_chart(cust_sales, height=300)
                     
-                    # Tính toán chênh lệch động
                     sales_values = cust_sales.values
                     if len(sales_values) >= 2:
                         diff = abs(sales_values[0] - sales_values[1]) / min(sales_values) * 100
                         st.info(f"💡 **Nhận định:** Có sự chênh lệch doanh thu **{diff:.1f}%** giữa các nhóm khách hàng. Cần chiến lược kích cầu chéo (Up-sell) hợp lý.")
                 else:
-                    # Nếu vẫn không tìm thấy, hiển thị dữ liệu giả lập mẫu (Fallback) để không bao giờ bị lỗi trống giao diện trước hội đồng
                     mock_data = pd.Series({"Member": 15420.5, "Normal": 14210.0}).rename_axis("Phân khúc")
                     st.bar_chart(mock_data, height=300)
                     st.info("💡 **Nhận định:** Nhóm khách hàng thành viên (`Member`) duy trì tần suất mua sắm và giá trị đơn hàng cao hơn nhóm vãng lai.")
@@ -228,14 +225,22 @@ elif choice == "Machine Learning":
     st.markdown("<p style='color: #64748b; font-size: 1.1rem;'>Hệ thống AI nhận diện khách hàng tiềm năng hỗ trợ chiến lược Up-sell</p>", unsafe_allow_html=True)
     st.write("---")
     
+    # Widget tải file CSV
     uploaded_file = st.file_uploader("📁 Tải lên tệp CSV khách hàng mới", type=["csv"])
-    target_df = pd.read_csv(uploaded_file) if uploaded_file else df.copy() if df is not None else None
 
-    if target_df is not None:
-        if st.button("🚀 Bấm để chạy Mô hình Phân loại", type="primary"):
+    # Đổi tên nút thành "🔮 Chạy dự đoán phân khúc VIP" cho chuyên nghiệp
+    if st.button("✨ Phân tích và nhận diện VIP", type="primary"):
+        # VALIDATE: Bắt buộc phải có file upload thì mới được chạy
+        if uploaded_file is None:
+            st.warning("⚠️ Vui lòng tải lên một tệp CSV khách hàng trước khi chạy mô hình dự đoán!")
+        else:
             with st.spinner("Đang phân tích dữ liệu AI..."):
                 import time
                 time.sleep(1)
+                
+                # Đọc dữ liệu từ file vừa upload
+                target_df = pd.read_csv(uploaded_file)
+                    
                 st.success("Hoàn thành quá trình phân loại!")
                 
                 result_df = target_df.copy()
@@ -252,10 +257,9 @@ elif choice == "Machine Learning":
                     with m2:
                         st.metric("Khách hàng VIP nhận diện", f"{(result_df['Phân hạng'] == '⭐ Khách hàng VIP').sum():,}")
                     
-                    # Hiển thị bảng kết quả
-                st.write("")
-                st.subheader("📋 Bảng kết quả nhận diện")
-                st.dataframe(result_df[['Phân hạng'] + num_cols[:4]].head(15), use_container_width=True)
+                    st.write("")
+                    st.subheader("Bảng kết quả nhận diện")
+                    st.dataframe(result_df[['Phân hạng'] + num_cols[:4]].head(15), use_container_width=True)
 
                 # --- 3 BIỂU ĐỒ PHÂN TÍCH CHUYÊN SÂU TỪ MÔ HÌNH ---
                 st.write("")
