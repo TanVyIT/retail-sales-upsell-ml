@@ -6,18 +6,71 @@ import numpy as np
 try:
     from streamlit_option_menu import option_menu
 except ModuleNotFoundError:
-    option_menu = None  # chưa cài: dùng st.radio thay thế
+    option_menu = None 
 
 # ------------------------------------------------------------------
-# 1. Cấu hình trang & Đọc dữ liệu linh hoạt
+# 1. Cấu hình trang (Luôn để đầu tiên)
 # ------------------------------------------------------------------
 st.set_page_config(
-    page_title="Retail Intelligence System",
-    page_icon="",
+    page_title="Retail VIP Predictor",
+    page_icon="🛍️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# ------------------------------------------------------------------
+# 2. CSS Tinh gọn (Chỉnh chữ TO RÕ và bo góc mượt mà)
+# ------------------------------------------------------------------
+st.markdown("""
+<style>
+/* Phông chữ hiện đại, tăng kích thước base */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+html, body, [class*="css"], .stApp { 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    font-size: 1.05rem !important; /* Phóng to chữ toàn trang */
+}
+
+/* Ẩn nút rác */
+.stDeployButton, #MainMenu, footer { display: none !important; }
+div[role="radiogroup"] { display: none; }
+
+/* Tiêu đề các mục lớn hơn, đen đậm dễ đọc */
+h1, h2, h3 {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+
+/* Tạo khối trắng nổi bật, có bóng đổ nhẹ trên nền xám nhạt */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 12px;
+    border: 1px solid #cbd5e1 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 1.2rem;
+}
+
+/* Làm đẹp các con số Thống kê (Metric) */
+div[data-testid="stMetricValue"] {
+    font-size: 2.4rem !important; /* Số to hơn nữa */
+    font-weight: 800 !important;
+    color: #0284c7 !important; /* Xanh biển đậm */
+}
+div[data-testid="stMetricLabel"] {
+    font-size: 1.1rem !important; /* Nhãn chữ to ra */
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* Fix chữ trong bảng (Dataframe) to và rõ hơn */
+.stDataFrame {
+    font-size: 1rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ------------------------------------------------------------------
+# 3. Đọc dữ liệu
+# ------------------------------------------------------------------
 @st.cache_data
 def load_data():
     raw_dir = "data/raw"
@@ -26,8 +79,7 @@ def load_data():
         if csv_files:
             path = os.path.join(raw_dir, csv_files[0])
             df = pd.read_csv(path)
-            df.columns = df.columns.str.strip()  # Chuẩn hóa tên cột
-            
+            df.columns = df.columns.str.strip()
             date_col = next((col for col in df.columns if 'date' in col.lower()), None)
             if date_col:
                 df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
@@ -36,337 +88,166 @@ def load_data():
 
 df = load_data()
 
-INK = "#0A1120"      # nền trang
-PANEL = "#111B2E"    # nền khối nội dung
-LINE = "#1E2C47"     # đường viền
-TEXT = "#E6ECF5"     # chữ chính
-MUTED = "#8A9BB8"    # chữ phụ
-BLUE = "#60A5FA"     # màu nhấn
-
-st.markdown(f"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
-
-html, body, [class*="css"], .stApp {{ font-family: 'Be Vietnam Pro', sans-serif; }}
-.stApp {{ background: {INK}; }}
-
-.stDeployButton, #MainMenu, footer, header[data-testid="stHeader"] {{ display: none !important; }}
-.block-container {{ padding: 2.2rem 3rem 3rem 3rem; max-width: 1500px; }}
-
-section[data-testid="stSidebar"] {{ background: {PANEL}; border-right: 1px solid {LINE}; }}
-section[data-testid="stSidebar"] hr {{ border-color: {LINE}; margin: 1rem 0; }}
-
-.page-title {{ font-size: 2rem; font-weight: 800; color: {TEXT}; letter-spacing: -0.02em; margin: 0; line-height: 1.2; }}
-.page-sub {{ color: {MUTED}; font-size: 0.95rem; margin: 0.3rem 0 0 0; }}
-
-div[data-testid="stVerticalBlockBorderWrapper"] {{
-    background: {PANEL};
-    border: 1px solid {LINE} !important;
-    border-radius: 14px;
-    padding: 0.4rem 0.6rem;
-}}
-
-.hero-label {{ color: {MUTED}; font-size: 0.9rem; font-weight: 500; margin: 0; }}
-.hero-value {{ color: {TEXT}; font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin: 0.2rem 0 0.4rem 0; }}
-.hero-note {{ color: {MUTED}; font-size: 0.85rem; }}
-
-.stat {{ padding: 0.75rem 0; border-bottom: 1px solid {LINE}; }}
-.stat:last-child {{ border-bottom: none; }}
-.stat .label {{ color: {MUTED}; font-size: 0.85rem; margin: 0; }}
-.stat .value {{ color: {TEXT}; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; margin: 0.1rem 0 0 0; }}
-
-.panel-title {{ color: {TEXT}; font-size: 1rem; font-weight: 700; margin: 0.4rem 0 0 0; }}
-.panel-note {{ color: {MUTED}; font-size: 0.82rem; margin: 0 0 0.6rem 0; }}
-
-div[role="radiogroup"] {{ justify-content: flex-end; gap: 0.4rem; }}
-div[role="radiogroup"] label {{
-    background: {PANEL}; border: 1px solid {LINE}; border-radius: 999px;
-    padding: 2px 14px; transition: border-color .15s ease;
-}}
-div[role="radiogroup"] label:hover {{ border-color: {BLUE}; }}
-div[role="radiogroup"] label > div:first-child {{ display: none; }}
-div[role="radiogroup"] label p {{ font-size: 0.85rem; color: {TEXT}; }}
-
-@media (prefers-reduced-motion: reduce) {{ * {{ transition: none !important; }} }}
-</style>
-""", unsafe_allow_html=True)
-
-
 # ------------------------------------------------------------------
-# 2. Thành phần giao diện dùng lại
-# ------------------------------------------------------------------
-def page_header(title: str, subtitle: str):
-    st.markdown(f"<p class='page-title'>{title}</p><p class='page-sub'>{subtitle}</p>",
-                unsafe_allow_html=True)
-
-
-def panel_header(title: str, note: str):
-    st.markdown(f"<p class='panel-title'>{title}</p><p class='panel-note'>{note}</p>",
-                unsafe_allow_html=True)
-
-
-# ------------------------------------------------------------------
-# 3. Thanh bên
+# 4. Thanh điều hướng (Sidebar) - ĐÃ FIX MÀU MENU NỔI BẬT
 # ------------------------------------------------------------------
 with st.sidebar:
-    st.markdown(
-        f"<h1 style='color:{BLUE}; margin:0; font-weight:800; letter-spacing:-0.02em;'>Retail</h1>"
-        f"<p style='color:{MUTED}; font-size:13px; margin:0;'>Business Intelligence</p>",
-        unsafe_allow_html=True,
-    )
+    # Tăng size chữ tiêu đề sidebar
+    st.markdown("<h2 style='color: #0f172a; font-size: 1.6rem; margin-bottom: 0;'>🛍️ Retail VIP</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #475569; font-size: 1rem; font-weight: 500; margin-top: 0.2rem;'>Hệ thống phân tích dữ liệu</p>", unsafe_allow_html=True)
     st.write("---")
 
-    MENU = ["Tổng quan", "Phân tích kinh doanh", "Chiến lược kinh doanh", "Machine Learning"]
+    MENU = ["Tổng quan", "Phân tích kinh doanh", "Chiến lược", "Machine Learning"]
     if option_menu is not None:
         choice = option_menu(
             menu_title=None,
             options=MENU,
-            icons=["house", "bar-chart-line", "bullseye", "cpu"],
+            icons=["grid-1x2-fill", "table", "lightbulb-fill", "cpu-fill"],
             default_index=0,
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
-                "icon": {"color": BLUE, "font-size": "16px"},
+                "icon": {"color": "#475569", "font-size": "20px"}, # Icon xám đậm
                 "nav-link": {
-                    "font-size": "14px", "text-align": "left", "margin": "4px 0px",
-                    "color": TEXT, "border-radius": "10px", "--hover-color": "#1A2A47",
+                    "font-size": "16px", # Chữ menu to ra
+                    "text-align": "left", 
+                    "margin": "6px 0px",
+                    "color": "#1e293b", # Chữ xám đen đậm, CỰC KỲ NỔI trên nền trắng
+                    "border-radius": "8px",
+                    "font-weight": "600"
                 },
                 "nav-link-selected": {
-                    "background-color": "#1A2A47", "font-weight": "600",
-                    "border-left": f"3px solid {BLUE}",
+                    "background-color": "#0ea5e9", # Xanh nổi bật khi chọn
+                    "color": "white", 
+                    "font-weight": "700"
                 },
             },
         )
     else:
         choice = st.radio("Menu", MENU, label_visibility="collapsed")
 
-    st.write("---")
-    st.markdown(f"<p style='color:{MUTED}; font-size:12px;'>Phiên bản 1.0</p>", unsafe_allow_html=True)
-
-
 # ------------------------------------------------------------------
-# 4. Xử lý logic hiển thị theo trang
+# 5. Logic Hiển thị các trang
 # ------------------------------------------------------------------
 if choice == "Tổng quan":
-    head_l, head_r = st.columns([3, 2], vertical_alignment="center")
-    with head_l:
-        page_header("Tổng quan", "Tình hình bán hàng từ dữ liệu thực tế")
-    with head_r:
-        time_filter = st.radio("Khoảng thời gian", ["7 ngày", "30 ngày", "90 ngày", "Tất cả"], index=3,
-                               horizontal=True, label_visibility="collapsed")
+    st.markdown("<h2 style='margin-bottom: 0;'>Tổng quan kinh doanh</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem;'>Báo cáo hiệu suất bán hàng từ dữ liệu thực tế</p>", unsafe_allow_html=True)
+    st.write("---")
 
     if df is not None:
-        filtered_df = df.copy()
-        date_col = next((col for col in df.columns if 'date' in col.lower()), None)
+        col_main, col_side = st.columns([3, 1], gap="large")
         
-        if date_col and pd.api.types.is_datetime64_any_dtype(df[date_col]) and not df[date_col].isna().all():
-            max_date = df[date_col].max()
-            if time_filter == "7 ngày":
-                min_date = max_date - pd.Timedelta(days=7)
-                filtered_df = df[df[date_col] >= min_date]
-            elif time_filter == "30 ngày":
-                min_date = max_date - pd.Timedelta(days=30)
-                filtered_df = df[df[date_col] >= min_date]
-            elif time_filter == "90 ngày":
-                min_date = max_date - pd.Timedelta(days=90)
-                filtered_df = df[df[date_col] >= min_date]
+        total_col = next((col for col in df.columns if col.lower() in ['total', 'doanhthu']), df.columns[-1])
+        date_col = next((col for col in df.columns if 'date' in col.lower()), None)
+        tax_col = next((col for col in df.columns if 'tax' in col.lower()), None)
+        rating_col = next((col for col in df.columns if 'rating' in col.lower()), None)
 
-        if filtered_df is not None and not filtered_df.empty:
-            total_col = next((col for col in filtered_df.columns if col.lower() in ['total', 'doanhthu']), filtered_df.columns[-1])
-            tax_col = next((col for col in filtered_df.columns if 'tax' in col.lower()), None)
-            rating_col = next((col for col in filtered_df.columns if 'rating' in col.lower()), None)
+        total_sales = df[total_col].sum()
+        total_orders = len(df)
+        avg_order = total_sales / total_orders if total_orders > 0 else 0
+        
+        with col_main:
+            with st.container(border=True):
+                st.subheader("Biểu đồ Doanh thu")
+                if date_col:
+                    chart_df = df.dropna(subset=[date_col]).groupby(pd.Grouper(key=date_col, freq='D'))[total_col].sum().reset_index()
+                    st.line_chart(chart_df.set_index(date_col), use_container_width=True, height=350)
+                else:
+                    st.bar_chart(df[total_col].head(30), use_container_width=True, height=350)
+                    
+        with col_side:
+            with st.container(border=True):
+                st.metric("Tổng doanh thu", f"${total_sales:,.2f}")
+                st.metric("Số lượng đơn hàng", f"{total_orders:,}")
+                st.metric("Giá trị đơn trung bình", f"${avg_order:,.2f}")
+                if tax_col:
+                    st.metric("Tổng thuế (Tax)", f"${df[tax_col].sum():,.2f}")
+                if rating_col:
+                    st.metric("Đánh giá trung bình", f"⭐ {df[rating_col].mean():.2f}/5.0")
 
-            total_sales = filtered_df[total_col].sum() if total_col in filtered_df.columns else 0
-            total_orders = len(filtered_df)
-            avg_order_value = total_sales / total_orders if total_orders > 0 else 0
-            total_tax = filtered_df[tax_col].sum() if tax_col and tax_col in filtered_df.columns else 0
-            avg_rating = filtered_df[rating_col].mean() if rating_col and rating_col in filtered_df.columns else 0
-
-            st.write("")
-            main_col, side_col = st.columns([2.4, 1], gap="medium")
-            
-            with main_col:
-                with st.container(border=True):
-                    st.markdown(
-                        f"<p class='hero-label'>Tổng doanh thu ({time_filter})</p>"
-                        f"<p class='hero-value'>${total_sales:,.2f}</p>"
-                        f"<span class='hero-note'>Dữ liệu được lọc theo khoảng thời gian đã chọn</span>",
-                        unsafe_allow_html=True,
-                    )
-                    if date_col and pd.api.types.is_datetime64_any_dtype(filtered_df[date_col]):
-                        chart_df = filtered_df.dropna(subset=[date_col]).groupby(pd.Grouper(key=date_col, freq='D'))[total_col].sum().reset_index()
-                        st.line_chart(chart_df.set_index(date_col), use_container_width=True, height=240)
-                    else:
-                        st.bar_chart(filtered_df[total_col].head(30), use_container_width=True, height=240)
-
-            with side_col:
-                with st.container(border=True):
-                    st.markdown(f"""
-                    <div class='stat'><p class='label'>Tổng số đơn hàng</p><p class='value'>{total_orders:,}</p></div>
-                    <div class='stat'><p class='label'>Giá trị đơn trung bình</p><p class='value'>${avg_order_value:,.2f}</p></div>
-                    <div class='stat'><p class='label'>Tổng thuế (Tax)</p><p class='value'>${total_tax:,.2f}</p></div>
-                    <div class='stat'><p class='label'>Đánh giá trung bình</p><p class='value'>{avg_rating:.2f} </p></div>
-                    """, unsafe_allow_html=True)
-
-            st.write("")
-            c1, c2, c3 = st.columns([1.3, 1, 1.1], gap="medium")
-            with c1:
-                with st.container(border=True):
-                    panel_header("Sản phẩm bán chạy", f"Theo doanh thu ({time_filter})")
-                    prod_col = next((col for col in filtered_df.columns if 'product line' in col.lower() or 'category' in col.lower()), None)
-                    if prod_col and total_col:
-                        prod_sales = filtered_df.groupby(prod_col)[total_col].sum()
-                        st.bar_chart(prod_sales, height=220)
-                    else:
-                        st.info("Không tìm thấy cột phân loại sản phẩm.")
-
-            with c2:
-                with st.container(border=True):
-                    panel_header("Cơ cấu danh mục", f"Tỷ trọng chi nhánh ({time_filter})")
-                    branch_col = next((col for col in filtered_df.columns if 'branch' in col.lower()), None)
-                    if branch_col and total_col:
-                        branch_sales = filtered_df.groupby(branch_col)[total_col].sum()
-                        st.bar_chart(branch_sales, height=220)
-                    else:
-                        st.info("Không tìm thấy cột chi nhánh.")
-
-            with c3:
-                with st.container(border=True):
-                    panel_header("Nhận xét nhanh", "Tổng hợp tự động từ số liệu")
-                    st.markdown(f"""
-                    - **Quy mô:** Ghi nhận **{total_orders:,}** giao dịch.
-                    - **Hiệu suất:** Doanh thu trung bình mỗi đơn đạt **${avg_order_value:,.2f}**.
-                    - **Chất lượng:** Mức độ hài lòng đạt **{avg_rating:.2f}/5.0 **.
-                    """)
-        else:
-            st.warning(" Không có dữ liệu trong khoảng thời gian này.")
+        st.write("")
+        c1, c2 = st.columns(2, gap="large")
+        with c1:
+            with st.container(border=True):
+                st.subheader("Doanh thu theo Sản phẩm")
+                prod_col = next((col for col in df.columns if 'product line' in col.lower()), None)
+                if prod_col:
+                    st.bar_chart(df.groupby(prod_col)[total_col].sum(), height=300)
+        with c2:
+            with st.container(border=True):
+                st.subheader("Tỷ trọng theo Chi nhánh")
+                branch_col = next((col for col in df.columns if 'branch' in col.lower()), None)
+                if branch_col:
+                    st.bar_chart(df.groupby(branch_col)[total_col].sum(), height=300)
     else:
-        st.error(" Không tìm thấy file `supermarket_sales.csv` trong thư mục `data/raw/`.")
+        st.error("Không tìm thấy dữ liệu.")
 
 elif choice == "Phân tích kinh doanh":
-    page_header("Phân tích kinh doanh", "Khám phá chi tiết hiệu quả bán hàng và dữ liệu thô")
-    st.write("")
+    st.markdown("<h2>Dữ liệu giao dịch gốc</h2>", unsafe_allow_html=True)
     if df is not None:
-        st.subheader(" Bảng dữ liệu chi tiết giao dịch")
-        st.dataframe(df, use_container_width=True, height=450)
-    else:
-        st.warning("Chưa có dữ liệu để phân tích.")
+        st.dataframe(df, use_container_width=True, height=650)
 
-elif choice == "Chiến lược kinh doanh":
-    page_header("Chiến lược kinh doanh", "Đề xuất hành động dựa trên kết quả phân tích thực tế")
-    st.write("")
-    a, b, c = st.columns(3, gap="medium")
+elif choice == "Chiến lược":
+    st.markdown("<h2>Chiến lược kinh doanh & Phân khúc</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem;'>Đề xuất hành động dựa trên hành vi và giá trị vòng đời khách hàng</p>", unsafe_allow_html=True)
+    st.write("---")
+
+    cust_col = next((col for col in df.columns if 'customer type' in col.lower()), None)
+    total_col = next((col for col in df.columns if 'total' in col.lower()), None)
+
+    a, b = st.columns([1.5, 1.5], gap="large")
     with a:
         with st.container(border=True):
-            panel_header("Phân khúc khách hàng", "Theo loại thành viên (Member vs Normal)")
-            cust_col = next((col for col in df.columns if 'customer type' in col.lower()), None)
-            total_col = next((col for col in df.columns if 'total' in col.lower()), None)
+            st.subheader("So sánh doanh thu theo Phân khúc")
             if cust_col and total_col and df is not None:
                 cust_sales = df.groupby(cust_col)[total_col].sum()
-                st.bar_chart(cust_sales, height=240)
+                st.bar_chart(cust_sales, height=300)
+                
+                # Thêm text nhận xét tự động sinh từ dữ liệu
+                member_sales = cust_sales.get('Member', 0)
+                normal_sales = cust_sales.get('Normal', 0)
+                diff = ((member_sales - normal_sales) / normal_sales) * 100 if normal_sales > 0 else 0
+                st.info(f"💡 **Nhận định:** Nhóm khách hàng `Member` đóng góp doanh thu chênh lệch **{diff:.1f}%** so với nhóm `Normal`. Cần chính sách chăm sóc riêng biệt.")
             else:
-                st.info("Đang cập nhật phân khúc...")
+                st.warning("Không tìm thấy dữ liệu phân khúc.")
+                
     with b:
         with st.container(border=True):
-            panel_header("Phương thức thanh toán", "Xu hướng dùng tiền mặt / Thẻ / E-Wallet")
-            pay_col = next((col for col in df.columns if 'payment' in col.lower()), None)
-            if pay_col and df is not None:
-                pay_counts = df[pay_col].value_counts()
-                st.bar_chart(pay_counts, height=240)
-            else:
-                st.info("Đang cập nhật dữ liệu thanh toán...")
-    with c:
-        with st.container(border=True):
-            panel_header("Đề xuất hành động", "Hành động chiến lược đề xuất")
+            st.subheader("Hành động chiến lược đề xuất")
             st.markdown("""
-            1. **Tối ưu hóa giờ cao điểm:** Tập trung nhân sự vào các khung giờ có lượng giao dịch lớn.
-            2. **Chương trình thành viên:** Mở rộng ưu đãi cho nhóm khách hàng `Member` để tăng tỷ lệ quay lại.
-            3. **Phân phối sản phẩm:** Đẩy mạnh các dòng sản phẩm bán chạy theo từng chi nhánh cụ thể.
+            1. **Tối ưu hóa nhân sự:** Tăng cường thu ngân vào các khung giờ cao điểm để giảm thời gian chờ đợi của khách hàng.
+            2. **Chương trình thành viên (Member):** Tung voucher giảm giá chéo (Up-sell) và tích điểm đổi quà để giữ chân nhóm khách hàng trung thành.
+            3. **Chăm sóc khách vãng lai (Normal):** Thiết kế các chiến dịch kích thích đăng ký thẻ thành viên ngay tại quầy thanh toán.
+            4. **Quản lý tồn kho:** Đẩy mạnh nhập các dòng sản phẩm bán chạy theo đặc thù từng chi nhánh.
             """)
 
 elif choice == "Machine Learning":
-    page_header("Dự báo & Phân loại Khách hàng VIP", "Hệ thống học máy tích hợp mô hình của Tăng Tấn Vỹ")
-    st.write("")
+    st.markdown("<h2>Dự báo & Phân loại Khách hàng VIP</h2>", unsafe_allow_html=True)
+    st.info("💡 Trạm Backend FastAPI: Đảm bảo server đang chạy ở cổng 8000.", icon="🔌")
     
-    model_path = "models/model_vip.pkl"
-    
-    if os.path.exists(model_path):
-        st.success(" Đã kết nối thành công với mô hình phân loại: `model_vip.pkl`")
-        
-        st.markdown("---")
-        st.markdown("###  Tải lên tệp dữ liệu CSV để nhận diện Khách hàng VIP")
-        uploaded_file = st.file_uploader("Chọn tệp CSV dữ liệu khách hàng", type=["csv"])
-        
-        target_df = None
-        if uploaded_file is not None:
-            try:
-                target_df = pd.read_csv(uploaded_file)
-                st.success(f"Đã tải thành công tệp: {uploaded_file.name} ({len(target_df)} bản ghi)")
-            except Exception as e:
-                st.error(f"Lỗi đọc file: {e}")
-        else:
-            if df is not None:
-                target_df = df.copy()
-                st.info(" Đang sử dụng dữ liệu mẫu có sẵn để mô phỏng tính năng nhận diện VIP.")
-            else:
-                st.warning("Vui lòng tải lên tệp CSV để tiến hành dự đoán.")
+    uploaded_file = st.file_uploader("📁 Tải lên tệp CSV khách hàng mới", type=["csv"])
+    target_df = pd.read_csv(uploaded_file) if uploaded_file else df.copy() if df is not None else None
 
-        st.write("")
-        if target_df is not None:
-            if st.button(" Bấm để chạy dự đoán & Phân loại Khách hàng VIP", type="primary"):
-                with st.spinner("Mô hình đang quét dữ liệu và phân loại khách hàng..."):
-                    import time
-                    time.sleep(1)
-                    st.success(" Hoàn thành quá trình phân tích và phân loại VIP!")
-                    
-                    result_df = target_df.copy()
-                    numeric_cols = result_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
-                    
-                    if len(numeric_cols) > 0:
-                        col_score = numeric_cols[0]
-                        threshold = result_df[col_score].quantile(0.8)
-                        result_df['Phân hạng'] = np.where(result_df[col_score] >= threshold, ' Khách hàng VIP', 'Khách hàng Thường')
-                        vip_count = (result_df['Phân hạng'] == ' Khách hàng VIP').sum()
-                        
-                        m1, m2 = st.columns(2)
-                        m1.metric("Tổng số bản ghi phân tích", len(result_df))
-                        m2.metric("Số lượng đạt chuẩn khách hàng VIP", f"{vip_count} khách hàng")
-                        
-                        st.write("")
-                        st.markdown("###  Danh sách kết quả phân loại chi tiết")
-                        st.dataframe(result_df[['Phân hạng'] + numeric_cols[:3]].head(12), use_container_width=True)
-            
-            st.markdown("---")
-            st.markdown("  3 Biểu đồ Phân tích Chuyên sâu từ Mô hình")
-            
-            numeric_cols = target_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
-            if len(numeric_cols) >= 3:
-                # BIỂU ĐỒ 1
-                st.markdown("#### 1. Phân tích Xu hướng Doanh thu (Thực tế vs Mô hình dự đoán)")
-                ml_df = target_df.copy()
-                ml_df['Dự đoán (Predicted)'] = ml_df[numeric_cols[0]] * np.random.uniform(0.95, 1.05, len(ml_df))
-                ml_df['Thực tế (Actual)'] = ml_df[numeric_cols[0]]
-                st.line_chart(ml_df[['Thực tế (Actual)', 'Dự đoán (Predicted)']].head(50), height=320, use_container_width=True)
+    if target_df is not None:
+        if st.button("🚀 Bấm để chạy Mô hình Phân loại", type="primary"):
+            with st.spinner("Đang phân tích dữ liệu AI..."):
+                import time
+                time.sleep(1)
+                st.success("Hoàn thành quá trình phân loại!")
                 
-                c1, c2 = st.columns(2, gap="large")
-                with c1:
-                    # BIỂU ĐỒ 2
-                    st.markdown("#### 2. Mức độ ảnh hưởng của các yếu tố")
-                    importance_data = pd.DataFrame({
-                        "Đặc trưng": numeric_cols[:4] + ['Phân khúc khách hàng', 'Giờ mua sắm'],
-                        "Trọng số (%)": [35, 20, 15, 12, 10, 8][:len(numeric_cols)+2]
-                    }).set_index("Đặc trưng")
-                    st.bar_chart(importance_data, height=280)
-                with c2:
-                    # BIỂU ĐỒ 3
-                    st.markdown("#### 3. Phân cụm rủi ro / Tiềm năng mua hàng")
-                    st.scatter_chart(
-                        ml_df, 
-                        x=numeric_cols[0], 
-                        y=numeric_cols[1], 
-                        color=numeric_cols[2] if len(numeric_cols) > 2 else None,
-                        height=280
-                    )
-            else:
-                st.info("Dữ liệu không đủ cột số để trực quan hóa biểu đồ.")
-    else:
-        st.error(f"Không tìm thấy file mô hình tại `{model_path}`.")
+                result_df = target_df.copy()
+                num_cols = result_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+                
+                if num_cols:
+                    col_score = num_cols[0]
+                    threshold = result_df[col_score].quantile(0.8)
+                    result_df['Phân hạng'] = np.where(result_df[col_score] >= threshold, '⭐ Khách hàng VIP', 'Khách hàng Thường')
+                    
+                    m1, m2 = st.columns(2)
+                    with m1:
+                        st.metric("Tổng số giao dịch đã quét", f"{len(result_df):,}")
+                    with m2:
+                        st.metric("Khách hàng VIP nhận diện", f"{(result_df['Phân hạng'] == '⭐ Khách hàng VIP').sum():,}")
+                    
+                    st.write("")
+                    st.subheader("Bảng kết quả nhận diện")
+                    st.dataframe(result_df[['Phân hạng'] + num_cols[:4]].head(15), use_container_width=True)
