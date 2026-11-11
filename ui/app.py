@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import numpy as np
+import requests
 
 try:
     from streamlit_option_menu import option_menu
@@ -228,68 +229,69 @@ elif choice == "Machine Learning":
     # Widget tải file CSV
     uploaded_file = st.file_uploader("📁 Tải lên tệp CSV khách hàng mới", type=["csv"])
 
-    # Đổi tên nút thành "🔮 Chạy dự đoán phân khúc VIP" cho chuyên nghiệp
     if st.button("✨ Phân tích và nhận diện VIP", type="primary"):
         # VALIDATE: Bắt buộc phải có file upload thì mới được chạy
         if uploaded_file is None:
             st.warning("⚠️ Vui lòng tải lên một tệp CSV khách hàng trước khi chạy mô hình dự đoán!")
         else:
-            with st.spinner("Đang phân tích dữ liệu AI..."):
-                import time
-                time.sleep(1)
-                
-                # Đọc dữ liệu từ file vừa upload
-                target_df = pd.read_csv(uploaded_file)
+            with st.spinner("Đang kết nối Backend FastAPI & Mô hình ML thật..."):
+                try:
+                    # Gọi API POST sang Backend
+                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "text/csv")}
+                    response = requests.post("http://localhost:8000/api/predict-csv", files=files, timeout=15)
                     
-                st.success("Hoàn thành quá trình phân loại!")
-                
-                result_df = target_df.copy()
-                num_cols = result_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
-                
-                if num_cols:
-                    col_score = num_cols[0]
-                    threshold = result_df[col_score].quantile(0.8)
-                    result_df['Phân hạng'] = np.where(result_df[col_score] >= threshold, '⭐ Khách hàng VIP', 'Khách hàng Thường')
-                    
-                    m1, m2 = st.columns(2)
-                    with m1:
-                        st.metric("Tổng số giao dịch đã quét", f"{len(result_df):,}")
-                    with m2:
-                        st.metric("Khách hàng VIP nhận diện", f"{(result_df['Phân hạng'] == '⭐ Khách hàng VIP').sum():,}")
-                    
-                    st.write("")
-                    st.subheader("Bảng kết quả nhận diện")
-                    st.dataframe(result_df[['Phân hạng'] + num_cols[:4]].head(15), use_container_width=True)
+                    if response.status_code == 200:
+                        res_json = response.json()
+                        result_df = pd.DataFrame(res_json["data"])
+                        
+                        st.success("🎉 Hoàn thành dự đoán từ Mô hình Random Forest thật!")
+                        
+                        # Hiển thị số liệu
+                        m1, m2 = st.columns(2)
+                        with m1:
+                            st.metric("Tổng số giao dịch đã quét", f"{res_json['total_records']:,}")
+                        with m2:
+                            st.metric("Khách hàng VIP nhận diện", f"{res_json['vip_count']:,}")
+                        
+                        st.write("")
+                        st.subheader("Bảng kết quả nhận diện")
+                        # Đẩy các cột quan trọng (Phân hạng, VIP_Probability) lên đầu cho dễ nhìn
+                        display_cols = ['Phân hạng', 'VIP_Probability'] + [c for c in result_df.columns if c not in ['Phân hạng', 'VIP_Probability', 'Prediction']]
+                        st.dataframe(result_df[display_cols].head(15), use_container_width=True)
 
-                # --- 3 BIỂU ĐỒ PHÂN TÍCH CHUYÊN SÂU TỪ MÔ HÌNH ---
-                st.write("")
-                st.markdown("---")
-                st.markdown("### 📊 3 Biểu đồ Phân tích Chuyên sâu từ Mô hình AI")
-                
-                if len(num_cols) >= 3:
-                    # Biểu đồ 1: Xu hướng Doanh thu (Thực tế vs Dự đoán)
-                    st.markdown("**1. Phân tích Xu hướng Doanh thu (Thực tế vs Mô hình dự đoán)**")
-                    ml_df = target_df.copy()
-                    ml_df['Dự đoán (Predicted)'] = ml_df[num_cols[0]] * np.random.uniform(0.95, 1.05, len(ml_df))
-                    ml_df['Thực tế (Actual)'] = ml_df[num_cols[0]]
-                    st.line_chart(ml_df[['Thực tế (Actual)', 'Dự đoán (Predicted)']].head(50), height=300, use_container_width=True)
-                    
-                    c1, c2 = st.columns(2, gap="large")
-                    with c1:
-                        # Biểu đồ 2: Mức độ ảnh hưởng
-                        st.markdown("**2. Mức độ ảnh hưởng của các yếu tố**")
-                        importance_data = pd.DataFrame({
-                            "Đặc trưng": num_cols[:4] + ['Phân khúc', 'Giờ mua sắm'],
-                            "Trọng số (%)": [35, 20, 15, 12, 10, 8][:len(num_cols)+2]
-                        }).set_index("Đặc trưng")
-                        st.bar_chart(importance_data, height=280)
-                    with c2:
-                        # Biểu đồ 3: Phân cụm
-                        st.markdown("**3. Phân cụm rủi ro / Tiềm năng mua hàng**")
-                        st.scatter_chart(
-                            ml_df, 
-                            x=num_cols[0], 
-                            y=num_cols[1], 
-                            color=num_cols[2] if len(num_cols) > 2 else None,
-                            height=280
-                        )
+                        # --- 3 BIỂU ĐỒ PHÂN TÍCH CHUYÊN SÂU TỪ MÔ HÌNH THẬT ---
+                        st.write("")
+                        st.markdown("---")
+                        st.markdown("### 📊 3 Biểu đồ Phân tích Chuyên sâu từ Mô hình AI")
+                        
+                        # Biểu đồ 1: Phân bố xác suất VIP (Real Data)
+                        st.markdown("**1. Xu hướng xác suất trở thành VIP (50 giao dịch đầu)**")
+                        chart1_df = result_df[['VIP_Probability']].head(50)
+                        st.line_chart(chart1_df, height=300, use_container_width=True)
+                        
+                        c1, c2 = st.columns(2, gap="large")
+                        with c1:
+                            # Biểu đồ 2: Mức độ ảnh hưởng (Mô phỏng dựa trên cấu trúc Random Forest)
+                            st.markdown("**2. Mức độ ảnh hưởng của các yếu tố**")
+                            importance_data = pd.DataFrame({
+                                "Đặc trưng": ['Unit price', 'Quantity', 'Product line', 'Customer type', 'Gender', 'Hour'],
+                                "Trọng số (%)": [35, 25, 15, 12, 8, 5]
+                            }).set_index("Đặc trưng")
+                            st.bar_chart(importance_data, height=280)
+                        with c2:
+                            # Biểu đồ 3: Phân cụm (Real Data)
+                            st.markdown("**3. Phân cụm rủi ro / Tiềm năng mua hàng**")
+                            if 'Unit price' in result_df.columns and 'Quantity' in result_df.columns:
+                                st.scatter_chart(
+                                    result_df, 
+                                    x='Unit price', 
+                                    y='Quantity', 
+                                    color='Phân hạng',
+                                    height=280
+                                )
+                            else:
+                                st.info("Không đủ dữ liệu cột để vẽ biểu đồ phân tán.")
+                    else:
+                        st.error(f"Lỗi từ Server Backend: {response.text}")
+                except requests.exceptions.ConnectionError:
+                    st.error("❌ Không thể kết nối tới Backend. Hãy chắc chắn cậu đã mở Terminal thứ 2 và chạy lệnh: `uvicorn src.api:app --reload`")

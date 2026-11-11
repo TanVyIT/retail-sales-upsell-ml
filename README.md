@@ -52,6 +52,6 @@ pip install -r requirements.txt
 
 *Khởi chạy hệ thống
 Trạm 1: Khởi động Backend FastAPI (Cổng 8000): 
-uvicorn src.api:app --reload
+python -m uvicorn src.api:app --reload
 Trạm 2: Khởi động Frontend Streamlit (Giao diện Web - Cổng mặc định 8501): 
-streamlit run ui/app.py
+python -m streamlit run ui/app.py
