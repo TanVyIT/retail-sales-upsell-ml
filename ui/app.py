@@ -155,7 +155,7 @@ if choice == "Tổng quan":
                 if tax_col:
                     st.metric("Tổng thuế (Tax)", f"${df[tax_col].sum():,.2f}")
                 if rating_col:
-                    st.metric("Đánh giá trung bình", f"⭐ {df[rating_col].mean():.2f}/5.0")
+                    st.metric("Đánh giá trung bình", f" {df[rating_col].mean():.2f}/5.0")
 
         st.write("")
         c1, c2 = st.columns(2, gap="large")
@@ -203,11 +203,11 @@ elif choice == "Chiến lược":
                     sales_values = cust_sales.values
                     if len(sales_values) >= 2:
                         diff = abs(sales_values[0] - sales_values[1]) / min(sales_values) * 100
-                        st.info(f"💡 **Nhận định:** Có sự chênh lệch doanh thu **{diff:.1f}%** giữa các nhóm khách hàng. Cần chiến lược kích cầu chéo (Up-sell) hợp lý.")
+                        st.info(f" **Nhận định:** Có sự chênh lệch doanh thu **{diff:.1f}%** giữa các nhóm khách hàng. Cần chiến lược kích cầu chéo (Up-sell) hợp lý.")
                 else:
                     mock_data = pd.Series({"Member": 15420.5, "Normal": 14210.0}).rename_axis("Phân khúc")
                     st.bar_chart(mock_data, height=300)
-                    st.info("💡 **Nhận định:** Nhóm khách hàng thành viên (`Member`) duy trì tần suất mua sắm và giá trị đơn hàng cao hơn nhóm vãng lai.")
+                    st.info(" **Nhận định:** Nhóm khách hàng thành viên (`Member`) duy trì tần suất mua sắm và giá trị đơn hàng cao hơn nhóm vãng lai.")
                     
         with b:
             with st.container(border=True):
@@ -227,9 +227,9 @@ elif choice == "Machine Learning":
     st.write("---")
     
     # Widget tải file CSV
-    uploaded_file = st.file_uploader("📁 Tải lên tệp CSV khách hàng mới", type=["csv"])
+    uploaded_file = st.file_uploader(" Tải lên tệp CSV khách hàng mới", type=["csv"])
 
-    if st.button("✨ Phân tích và nhận diện VIP", type="primary"):
+    if st.button(" Phân tích và nhận diện VIP", type="primary"):
         # VALIDATE: Bắt buộc phải có file upload thì mới được chạy
         if uploaded_file is None:
             st.warning("⚠️ Vui lòng tải lên một tệp CSV khách hàng trước khi chạy mô hình dự đoán!")
