@@ -129,7 +129,14 @@ if choice == "Tổng quan":
     if df is not None:
         col_main, col_side = st.columns([3, 1], gap="large")
         
-        total_col = next((col for col in df.columns if col.lower() in ['total', 'doanhthu']), df.columns[-1])
+        total_col = next(
+            (col for col in df.columns if any(k in col.lower() for k in ['sales', 'total', 'doanh thu'])),
+            None
+        )
+        if total_col is None and 'Unit price' in df.columns and 'Quantity' in df.columns:
+            df['Sales'] = df['Unit price'] * df['Quantity'] * 1.05
+            total_col = 'Sales'
+            
         date_col = next((col for col in df.columns if 'date' in col.lower()), None)
         tax_col = next((col for col in df.columns if 'tax' in col.lower()), None)
         rating_col = next((col for col in df.columns if 'rating' in col.lower()), None)
@@ -155,7 +162,7 @@ if choice == "Tổng quan":
                 if tax_col:
                     st.metric("Tổng thuế (Tax)", f"${df[tax_col].sum():,.2f}")
                 if rating_col:
-                    st.metric("Đánh giá trung bình", f" {df[rating_col].mean():.2f}/5.0")
+                    st.metric("Đánh giá trung bình", f" {df[rating_col].mean():.2f}/10")
 
         st.write("")
         c1, c2 = st.columns(2, gap="large")
